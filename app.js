@@ -27,7 +27,8 @@ mongoose.set('strictQuery', true);
 const userRoutes = require('./routes/users');
 const campgroundRoutes = require('./routes/campgrounds');
 const reviewRoutes = require('./routes/reviews');
-const dbUrl = 'mongodb://localhost:27017/yelp-camp';
+
+const dbUrl = process.env.DB_URL ||'mongodb://localhost:27017/yelp-camp';
 
 const { required } = require('joi');
 
@@ -45,11 +46,15 @@ const app = express();
 app.use(express.urlencoded({ extended: true }))
 app.use(methodOverride('_method'));
 app.use(express.static(path.join(__dirname, 'public')))
-app.use(mongoSanitize())
+app.use(mongoSanitize({
+    replaceWith: '_'
+}))
+
+const secret = process.env.SECRET || 'thisshouldbeabettersecret!';
 
 const store = MongoStore.create({
     mongoUrl: dbUrl,
-    secret: 'thisshouldbeabettersecret',
+    secret,
     touchAfter: 24 * 60 * 60
 });
 
@@ -60,7 +65,7 @@ store.on("error", function (e) {
 const sessionConfig = {
     store,
     name: 'Session',
-    secret: 'thisshouldbeabettersecret',
+    secret,
     resave: false,
     saveUninitialized: true,
     cookie: {
@@ -160,6 +165,7 @@ app.use((err, req, res, next) => {
     res.status(statusCode).render('error', { err })
 })
 
-app.listen(3000, () => {
-    console.log('Serving on PORT 3000')
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+    console.log(`Serving on ${port}`)
 })
